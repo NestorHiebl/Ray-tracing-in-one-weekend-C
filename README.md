@@ -18,8 +18,8 @@ Version 3.2.3, 2020-12-07 (Modified)
 Copyright 2018-2020 Peter Shirley. All rights reserved.
 
 ## Contents
-1. [Overview](#1.-Overview)
-2. [Output an Image](#2.-Output-an-Image)
+1. [Overview](#1.-overview)
+2. [Output an Image](#2.-output-an-image)
     1. The PPM Image format
     2. Creating an Image File
     3. Adding a Progress Indicator
@@ -52,11 +52,16 @@ Let’s get on with it!
 Whenever you start a renderer, you need a way to see an image. The most straightforward way is to write it to a file. The catch is, there are so many formats. Many of those are complex. I always start with a plain text ppm file. Here’s a nice description from Wikipedia:
 
 ![PPM format description](./img/fig1.jpg)
-<div align="center"><b>Figure 1:</b> PPM Example</div>
+<div align="center"><b>Figure 1:</b> PPM Example</div><br/>
 
 Let’s make some C++ code to output such a thing:
 
 ```c
+#include <stdio.h>
+
+#define IMG_WIDTH 256
+#define IMG_HEIGHT 256
+
 int main(int argc, char *argv[]) {
     FILE *output_file = fopen("out.ppm", "w");
 
@@ -85,7 +90,7 @@ int main(int argc, char *argv[]) {
     fclose(output_file);
 }
 ```
-<div align="center"><b>Listing 1:</b> [main.c] Creating your first image</div>
+<div align="center"><b>Listing 1:</b> [main.c] Creating your first image</div><br/>
 
 There are some things to note in that code:
 1. The pixels are written out in rows with pixels left to right.
