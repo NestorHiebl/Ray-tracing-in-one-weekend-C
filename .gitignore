@@ -1,0 +1,7 @@
+# Output images
+*.ppm
+*.png
+
+# Executable
+raytracer
+*.exe
