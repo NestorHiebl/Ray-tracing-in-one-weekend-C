@@ -18,8 +18,8 @@ Version 3.2.3, 2020-12-07 (Modified)
 Copyright 2018-2020 Peter Shirley. All rights reserved.
 
 ## Contents
-1. [Overview](#overview)
-2. [Output an Image](#output-an-image)
+1. [Overview](#1.-overview)
+2. [Output an Image](#2.-output-an-image)
     1. The PPM Image format
     2. Creating an Image File
     3. Adding a Progress Indicator
@@ -48,6 +48,7 @@ Thanks to everyone who lent a hand on this project. You can find them in the ack
 Let’s get on with it!
 
 ## 2. Output an Image
+### 2.1. The PPM Image Format
 
 Whenever you start a renderer, you need a way to see an image. The most straightforward way is to write it to a file. The catch is, there are so many formats. Many of those are complex. I always start with a plain text ppm file. Here’s a nice description from Wikipedia:
 
@@ -94,7 +95,169 @@ int main(int argc, char *argv[]) {
 
 There are some things to note in that code:
 1. The pixels are written out in rows with pixels left to right.
-
 2. The rows are written out from top to bottom.
 3. By convention, each of the red/green/blue components range from 0.0 to 1.0. We will relax that later when we internally use high dynamic range, but before output we will tone map to the zero to one range, so this code won’t change.
 4. Red goes from fully off (black) to fully on (bright red) from left to right, and green goes from black at the bottom to fully on at the top. Red and green together make yellow so we should expect the upper right corner to be yellow.
+
+### 2.2. Creating an Image File
+
+Since the image data isn't written to *stdout* we cannot use output redirection to create an image file. The program in **Listing 1** is hard-coded to always create (or overwrite) a file called `out.ppm`, but we may want the option to give our images custom names. In the following section, we'll make it so that a filename can be specified via command line argument, as so:
+
+`raytracer [FILE]`  
+`Where FILE is a filename ending with .ppm`
+
+We always want our output file to end with .ppm so it makes sense to write a simple function for input validation. Let's create a new file called `utils.h` and populate it as so:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void print_usage();
+int validate_filename(const char *filename);
+
+void print_usage() {
+    printf( "Usage:\n\t"
+            "raytracer [FILE]\n\t"
+            "Where FILE is a filename ending with .ppm\n"
+          );
+}
+
+int validate_filename(const char *filename) {
+    if (filename == NULL) {
+        return 0;
+    }
+
+    size_t len = strlen(filename);
+    if ((len > FILENAME_MAX) || (len < 5)) {
+        return 0;
+    }
+
+    if (strcmp(&filename[len - 4 /* Length of .ppm extension */], ".ppm") == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+```
+<div align="center"><b>Listing 1a:</b> [utils.h] Some simple utility functions</div><br/>
+
+The `validate_input` function is rudimentary but will do for now. All it does is check that the given filename is a string ending with but not consisting entirely of the characters ".ppm" and that it is not too long for the operating system. `print_usage` can be output in case of error to let the user know what kind of input is expected of them. When we insert the above functions into our code we get this:
+
+```c
+#include <stdio.h>
+#include <errno.h>
+#include "utils.h"
+
+#define IMG_WIDTH 256
+#define IMG_HEIGHT 256
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Invalid or no arguments supplied. See usage below:\n");
+        print_usage();
+        exit(1);
+    }
+
+    if (!validate_filename(argv[1])) {
+        fprintf(stderr, "Invalid filename argument supplied. See usage below:\n");
+        print_usage();
+        exit(1);
+    }
+
+    FILE *output_file = fopen(argv[1], "w");
+
+    if (output_file == NULL) {
+        fprintf(stderr, "Could not open file %s\n", argv[1]);
+        perror(NULL);
+        exit(1);
+    }
+
+    fprintf(output_file, "P3\n%d %d\n255\n", IMG_WIDTH, IMG_HEIGHT);
+
+    for (int j = IMG_HEIGHT - 1; j >= 0; j--) {
+        for (int i = 0; i < IMG_WIDTH; i++) {
+            double r = ((double) i / (IMG_WIDTH - 1));
+            double g = ((double) j / (IMG_HEIGHT - 1));
+            double b = 0.25;
+
+            int ir = (int) (255.999 * r);
+            int ig = (int) (255.999 * g);
+            int ib = (int) (255.999 * b);
+
+            fprintf(output_file, "%d %d %d\n", ir, ig, ib);
+        }
+    }
+
+    fflush(output_file);
+    fclose(output_file);
+}
+```
+<div align="center"><b>Listing 1b:</b> [main.c] Specifying the output filename</div><br/>
+
+Now that we have two separate code files (and many more to come) it makes sense to include a build system into the project. Create a new file in the project's root directory called `Makefile`. Makefiles are used to specify and track dependencies between files. With one set up, we can simply run `make` from the command line and it will automatically check for changes in the source code, recompiling executables and object files as needed.
+
+Let's insert the following into our makefile:
+
+```Makefile
+CC=gcc #Or replace gcc with whichever compiler you're using
+CFLAGS=-Werror -Wextra -pedantic
+EXECUTABLE=raytracer
+
+$(EXECUTABLE): main.c utils.h
+	$(CC) -o $(EXECUTABLE) $(CFLAGS) main.c
+```
+
+The above expresses that our executable file (`raytracer`) depends on the source files `main.c` and `utils.h`. As a result, whenever we run `make` after changing either of these files it will recognize that the executable is out of date and will run the chain of commands specified in the indented line under `$(EXECUTABLE): main.c utils.h`.
+
+Now all you need to do is run the command `make`. Your shell should output something along the lines of `gcc -o raytracer -Werror -Wextra -pedantic main.c` and you should find a new file called `raytracer` in your project's directory. If this is the case, run `raytracer image.ppm` and open the resulting file with the image viewer of your choice. This is the result:
+
+![PPM format description](./img/img1.png)
+<div align="center"><b>Figure 1:</b> First PPM image</div><br/>
+
+Hooray! This is the graphics “hello world”. If your image doesn’t look like that, open the output file in a text editor and see what it looks like. It should start something like this:
+
+```
+P3
+256 256
+255
+0 255 63
+1 255 63
+2 255 63
+3 255 63
+4 255 63
+5 255 63
+6 255 63
+7 255 63
+8 255 63
+9 255 63
+...
+```
+<div align="center"><b>Listing 2:</b> First image output</div><br/>
+
+If it doesn’t, then you probably just have some newlines or something similar that is confusing the image reader. 
+
+If you want to produce more image types than PPM, I am a fan of stb_image.h, a header-only image library available on GitHub at https://github.com/nothings/stb.
+
+### 2.3. Adding a Progress Indicator
+
+Before we continue, let's add a progress indicator to our output. This is a handy way to track the progress of a long render, and also to possibly identify a run that's stalled out due to an infinite loop or other problem.
+
+```c
+    for (int j = IMG_HEIGHT - 1; j >= 0; j--) {
+        printf("\rScanlines remaining: %d ", j);
+        for (int i = 0; i < IMG_WIDTH; i++) {
+            double r = ((double) i / (IMG_WIDTH - 1));
+            double g = ((double) j / (IMG_HEIGHT - 1));
+            double b = 0.25;
+
+            int ir = (int) (255.999 * r);
+            int ig = (int) (255.999 * g);
+            int ib = (int) (255.999 * b);
+
+            fprintf(output_file, "%d %d %d\n", ir, ig, ib);
+        }
+    }
+
+    printf("\nDone.\n");
+```

@@ -2,6 +2,9 @@
 *.ppm
 *.png
 
-# Executable
+# Executables
 raytracer
 *.exe
+
+# Object files
+*.o
