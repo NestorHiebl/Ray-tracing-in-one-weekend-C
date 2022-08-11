@@ -18,8 +18,8 @@ Version 3.2.3, 2020-12-07 (Modified)
 Copyright 2018-2020 Peter Shirley. All rights reserved.
 
 ## Contents
-1. [Overview](#1.-overview)
-2. [Output an Image](#2.-output-an-image)
+1. [Overview](#overview)
+2. [Output an Image](#output-an-image)
     1. The PPM Image format
     2. Creating an Image File
     3. Adding a Progress Indicator
@@ -54,7 +54,7 @@ Whenever you start a renderer, you need a way to see an image. The most straight
 ![PPM format description](./img/fig1.jpg)
 <div align="center"><b>Figure 1:</b> PPM Example</div><br/>
 
-Let’s make some C++ code to output such a thing:
+Let’s make some C code to output such a thing:
 
 ```c
 #include <stdio.h>
