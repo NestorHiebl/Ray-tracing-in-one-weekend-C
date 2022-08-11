@@ -1,6 +1,6 @@
 # Output images
 *.ppm
-*.png
+./*.png
 
 # Executables
 raytracer

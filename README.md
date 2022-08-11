@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 ```
 <div align="center"><b>Listing 1b:</b> [main.c] Specifying the output filename</div><br/>
 
-Now that we have two separate code files (and many more to come) it makes sense to include a build system into the project. Create a new file in the project's root directory called `Makefile`. Makefiles are used to specify and track dependencies between files. With one set up, we can simply run `make` from the command line and it will automatically check for changes in the source code, recompiling executables and object files as needed.
+Now that we have two separate code files (with many more to come) it makes sense to include a build system into the project. Create a new file in the project's root directory called `Makefile`. Makefiles are used to specify and track dependencies between files. With one set up, we can simply run `make` from the command line and it will automatically check for changes in the source code, recompiling executables and object files as needed.
 
 Let's insert the following into our makefile:
 
@@ -209,6 +209,8 @@ $(EXECUTABLE): main.c utils.h
 ```
 
 The above expresses that our executable file (`raytracer`) depends on the source files `main.c` and `utils.h`. As a result, whenever we run `make` after changing either of these files it will recognize that the executable is out of date and will run the chain of commands specified in the indented line under `$(EXECUTABLE): main.c utils.h`.
+
+The makefile will be refined further as the project becomes more complex, but I will not spend too much time on explaining its inner mechanics in the chapters to come. If you're interested on seeing its state at a specific stage in the project's development, check its specific subsection directory. For a deeper read on the topic, see this [website](https://makefiletutorial.com/). 
 
 Now all you need to do is run the command `make`. Your shell should output something along the lines of `gcc -o raytracer -Werror -Wextra -pedantic main.c` and you should find a new file called `raytracer` in your project's directory. If this is the case, run `raytracer image.ppm` and open the resulting file with the image viewer of your choice. This is the result:
 
