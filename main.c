@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "vec3/vec3.h"
 
 #define IMG_WIDTH 256
 #define IMG_HEIGHT 256
