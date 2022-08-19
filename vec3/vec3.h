@@ -7,6 +7,8 @@ typedef struct {
     double z;
 } vec3_t;
 
+typedef vec3_t point_t;
+
 vec3_t vec3_add(vec3_t v, vec3_t u);
 vec3_t vec3_sub(vec3_t v, vec3_t u);
 vec3_t vec3_scalar_mul(vec3_t v, double s);

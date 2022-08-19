@@ -269,7 +269,7 @@ Before we continue, let's add a progress indicator to our output. This is a hand
 
 ## 3. The vec3 Data Structure
 
-Almost all graphics programs have some class(es) for storing geometric vectors and colors. In many systems these vectors are 4D (3D plus a homogeneous coordinate for geometry, and RGB plus an alpha transparency channel for colors). For our purposes, three coordinates suffices. Unlike the original book, we won't be using the same `vec3` type for colors, locations, directions, offsets, whatever. This prevents us from doing something silly, like adding a color to a location, as well as keeping the code cleaner. C does not have type aliasing capabilities comparable to C++. We could simulate something similar by playing around with pointers or macros, but this has drawbacks in terms of complexity and readability so we'll be sticking to separate types.
+Almost all graphics programs have some class(es) for storing geometric vectors and colors. In many systems these vectors are 4D (3D plus a homogeneous coordinate for geometry, and RGB plus an alpha transparency channel for colors). For our purposes, three coordinates suffices. Unlike the original book, we won't be using the same `vec3` type for everything. This prevents us from doing something silly, like adding a color to a location, as well as keeping our code cleaner. C does not have type aliasing capabilities comparable to C++. We could simulate something similar by playing around with pointers or macros, but this has drawbacks in terms of complexity and readability so we'll be sticking to separate types. Since both points and vectors will be used (in combination) to navigate an abstract three dimenstional space and we want them to have the same underlying structure, we can simply stick another typedef on top of the `vec3_t` type immediately.
 
 ### 3.1 Variables and Methods
 
@@ -283,6 +283,8 @@ typedef struct {
     double y;
     double z;
 } vec3_t;
+
+typedef vec3_t point_t;
 
 vec3_t vec3_add(vec3_t v, vec3_t u);
 vec3_t vec3_sub(vec3_t v, vec3_t u);
@@ -298,7 +300,8 @@ double vec3_len_squared(vec3_t v);
 #endif
 ``` 
 <div align="center"><b>Listing 4:</b> [vec3.h] vec3 datatype</div><br/>
-We use `double` here, but some ray tracers use float. Either one is fine — follow your own tastes.
+
+We use `double` here, but some ray tracers use `float`. Either one is fine — follow your own tastes.
 
 ### 3.2 vec3 Utility Function Implementation
 
@@ -373,7 +376,7 @@ double vec3_len_squared(vec3_t v) {
 ```
 <div align="center"><b>Listing 5:</b> [vec3.c] vec3 utility functions</div><br/>
 
-## Color utility functions
+### 3.3 Color utility functions
 
 Let's create a new header file defining a datatype we can use to represent colors:
 ```c
@@ -435,3 +438,14 @@ Now we can change out main to use this:
     fclose(output_file);
 ```
 <div align="center"><b>Listing 7:</b> [main.c] Final code for the first PPM image</div><br/>
+
+## 4. Rays, a Simple Camera, and Background
+
+### 4.1. The ray Datatype
+
+The one thing that all ray tracers have is a ray class and a computation of what color is seen along a ray. Let’s think of a ray as a function $P(t)=A+t \cdot b$. Here P is a 3D position along a line in 3D. $A$ is the ray origin and $b$ is the ray direction. The ray parameter $t$ is a real number (`double` in the code). Plug in a different $t$ and $P(t)$ moves the point along the ray. Add in negative $t$ values and you can go anywhere on the 3D line. For positive $t$, you get only the parts in front of $A$, and this is what is often called a half-line or ray. 
+
+![Linear interpolation](./img/fig2.jpg)
+<div align="center"><b>Figure 2:</b> Linear interpolation</div><br/>
+
+The function $P(t)$ in more verbose code form will be called `ray_at(ray_t r, double t)`:
