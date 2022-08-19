@@ -45,7 +45,6 @@ int main(int argc, char *argv[]) {
     }
 
     printf("\nDone.\n");
-
     fflush(output_file);
     fclose(output_file);
 }

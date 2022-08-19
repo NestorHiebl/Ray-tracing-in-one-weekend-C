@@ -268,3 +268,170 @@ Before we continue, let's add a progress indicator to our output. This is a hand
 <div align="center"><b>Listing 3:</b> [main.c] Main render loop with progress reporting</div><br/>
 
 ## 3. The vec3 Data Structure
+
+Almost all graphics programs have some class(es) for storing geometric vectors and colors. In many systems these vectors are 4D (3D plus a homogeneous coordinate for geometry, and RGB plus an alpha transparency channel for colors). For our purposes, three coordinates suffices. Unlike the original book, we won't be using the same `vec3` type for colors, locations, directions, offsets, whatever. This prevents us from doing something silly, like adding a color to a location, as well as keeping the code cleaner. C does not have type aliasing capabilities comparable to C++. We could simulate something similar by playing around with pointers or macros, but this has drawbacks in terms of complexity and readability so we'll be sticking to separate types.
+
+### 3.1 Variables and Methods
+
+Here is the vec3.h header file:
+```c
+#ifndef VEC3
+#define VEC3
+
+typedef struct {
+    double x;
+    double y;
+    double z;
+} vec3_t;
+
+vec3_t vec3_add(vec3_t v, vec3_t u);
+vec3_t vec3_sub(vec3_t v, vec3_t u);
+vec3_t vec3_scalar_mul(vec3_t v, double s);
+vec3_t vec3_scalar_div(vec3_t v, double s);
+
+double vec3_dot(vec3_t v, vec3_t u);
+vec3_t vec3_cross(vec3_t v, vec3_t u);
+vec3_t vec3_unit_vec(vec3_t v);
+
+double vec3_len(vec3_t v);
+double vec3_len_squared(vec3_t v);
+#endif
+``` 
+<div align="center"><b>Listing 4:</b> [vec3.h] vec3 datatype</div><br/>
+We use `double` here, but some ray tracers use float. Either one is fine — follow your own tastes.
+
+### 3.2 vec3 Utility Function Implementation
+
+The corresponding function implementations can be found in vec3.c:
+
+```c
+vec3_t vec3_add(vec3_t v, vec3_t u) {
+    vec3_t retval = {
+        .x = v.x + u.x,
+        .y = v.y + u.y,
+        .z = v.z + u.z
+        };
+
+    return retval;
+}
+
+vec3_t vec3_sub(vec3_t v, vec3_t u) {
+    vec3_t retval = {
+        .x = v.x - u.x,
+        .y = v.y - u.y,
+        .z = v.z - u.z
+        };
+
+    return retval;
+}
+
+vec3_t vec3_scalar_mul(vec3_t v, double s) {
+    vec3_t retval = {
+        .x = v.x * s,
+        .y = v.y * s,
+        .z = v.z * s
+        };
+
+    return retval;
+}
+
+vec3_t vec3_scalar_div(vec3_t v, double s) {
+    vec3_t retval = {
+        .x = v.x / s,
+        .y = v.y / s,
+        .z = v.z / s
+        };
+
+    return retval;
+}
+
+double vec3_dot(vec3_t v, vec3_t u) {
+    return (v.x * u.x) + (v.y * u.y) + (v.z * u.z);
+}
+
+vec3_t vec3_cross(vec3_t v, vec3_t u) {
+    vec3_t retval = {
+        .x = (v.y * u.z) - (v.z * u.y),
+        .y = (v.z * u.x) - (v.x * u.z),
+        .z = (v.x * u.y) - (v.y * u.x)
+    };
+
+    return retval;
+}
+
+vec3_t vec3_unit_vec(vec3_t v) {
+    return vec3_scalar_div(v, vec3_len(v));
+}
+
+double vec3_len(vec3_t v) {
+    return sqrt(vec3_len_squared(v));
+}
+
+double vec3_len_squared(vec3_t v) {
+    return (v.x * v.x) + (v.y * v.y) + (v.z * v.z);
+}
+```
+<div align="center"><b>Listing 5:</b> [vec3.c] vec3 utility functions</div><br/>
+
+## Color utility functions
+
+Let's create a new header file defining a datatype we can use to represent colors:
+```c
+#ifndef COLOR
+#define COLOR
+
+#include <stdio.h>
+
+typedef struct {
+    double r;
+    double g;
+    double b;
+} color_t;
+
+void write_color(FILE* file, color_t pixel_color);
+
+#endif
+```
+And implement a utility function to write a single pixel's color to a given file pointer:
+
+```c
+void write_color(FILE* file, color_t pixel_color) {
+    if (file == NULL) {
+        fprintf(stderr, "Error: invalid file passed to \"write_color\"");
+        return;
+    }
+
+    fprintf(
+            file,
+            "%d %d %d\n", 
+            ((int) (255.999 * pixel_color.r)),
+            ((int) (255.999 * pixel_color.g)),
+            ((int) (255.999 * pixel_color.b))
+            );
+}
+```
+<div align="center"><b>Listing 6:</b> [color.c] color utility functions</div><br/>
+
+Now we can change out main to use this:
+
+```c
+    fprintf(output_file, "P3\n%d %d\n255\n", IMG_WIDTH, IMG_HEIGHT);
+
+    for (int j = IMG_HEIGHT - 1; j >= 0; j--) {
+        printf("\rScanlines remaining: %d ", j);
+        for (int i = 0; i < IMG_WIDTH; i++) {
+            color_t pixel_color = {
+                .r = ((double) i / (IMG_WIDTH - 1)),
+                .g = ((double) j / (IMG_HEIGHT - 1)),
+                .b = 0.25
+            };
+
+            write_color(output_file, pixel_color);
+        }
+    }
+
+    printf("\nDone.\n");
+    fflush(output_file);
+    fclose(output_file);
+```
+<div align="center"><b>Listing 7:</b> [main.c] Final code for the first PPM image</div><br/>
