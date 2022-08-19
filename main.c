@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "vec3/vec3.h"
+#include "color/color.h"
 
 #define IMG_WIDTH 256
 #define IMG_HEIGHT 256
@@ -33,15 +34,13 @@ int main(int argc, char *argv[]) {
     for (int j = IMG_HEIGHT - 1; j >= 0; j--) {
         printf("\rScanlines remaining: %d ", j);
         for (int i = 0; i < IMG_WIDTH; i++) {
-            double r = ((double) i / (IMG_WIDTH - 1));
-            double g = ((double) j / (IMG_HEIGHT - 1));
-            double b = 0.25;
+            color_t pixel_color = {
+                .r = ((double) i / (IMG_WIDTH - 1)),
+                .g = ((double) j / (IMG_HEIGHT - 1)),
+                .b = 0.25
+            };
 
-            int ir = (int) (255.999 * r);
-            int ig = (int) (255.999 * g);
-            int ib = (int) (255.999 * b);
-
-            fprintf(output_file, "%d %d %d\n", ir, ig, ib);
+            write_color(output_file, pixel_color);
         }
     }
 

@@ -1,4 +1,5 @@
 #include "vec3.h"
+#include <math.h>
 
 vec3_t vec3_add(vec3_t v, vec3_t u) {
     vec3_t retval = {

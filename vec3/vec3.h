@@ -1,6 +1,5 @@
 #ifndef VEC3
 #define VEC3
-#include <math.h>
 
 typedef struct {
     double x;
