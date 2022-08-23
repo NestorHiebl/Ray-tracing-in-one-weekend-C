@@ -269,7 +269,7 @@ Before we continue, let's add a progress indicator to our output. This is a hand
 
 ## 3. The vec3 Data Structure
 
-Almost all graphics programs have some class(es) for storing geometric vectors and colors. In many systems these vectors are 4D (3D plus a homogeneous coordinate for geometry, and RGB plus an alpha transparency channel for colors). For our purposes, three coordinates suffices. Unlike the original book, we won't be using the same `vec3` type for everything. This prevents us from doing something silly, like adding a color to a location, as well as keeping our code cleaner. C does not have type aliasing capabilities comparable to C++. We could simulate something similar by playing around with pointers or macros, but this has drawbacks in terms of complexity and readability so we'll be sticking to separate types. Since both points and vectors will be used (in combination) to navigate an abstract three dimenstional space and we want them to have the same underlying structure, we can simply stick another typedef on top of the `vec3_t` type immediately.
+Almost all graphics programs have some class(es) for storing geometric vectors and colors. In many systems these vectors are 4D (3D plus a homogeneous coordinate for geometry, and RGB plus an alpha transparency channel for colors). For our purposes, three coordinates suffices. Unlike the original book, we won't be using the same `vec3` type for everything, but we also won't be too strict about it. The original C++ implementation expresses vectors, points and colors using the same datatype. I will be drawing a hard line between vectors and colors, but not between vectors and points. It is not useful at all to have the option of, for example, computing the dot product of a color and vector whereas points and vectors both inhabit the same abstract space and are mathematically comparable. In the course of this exercise scenarios will come up where treating points as if they were vectors will be practical as it saves us having to accomodate a whole new datatype in our utility functions. As such, `point3_t` will not be a separate typedef. Instead, it will be a macro that resolves to `vec3_t`. This should serve the purpose of communicating intent to humans who read this code while making no difference at all to the compiler.
 
 ### 3.1 Variables and Methods
 
@@ -284,7 +284,7 @@ typedef struct {
     double z;
 } vec3_t;
 
-typedef vec3_t point_t;
+#define point3_t vec3_t
 
 vec3_t vec3_add(vec3_t v, vec3_t u);
 vec3_t vec3_sub(vec3_t v, vec3_t u);
@@ -443,9 +443,57 @@ Now we can change out main to use this:
 
 ### 4.1. The ray Datatype
 
-The one thing that all ray tracers have is a ray class and a computation of what color is seen along a ray. Let’s think of a ray as a function $P(t)=A+t \cdot b$. Here P is a 3D position along a line in 3D. $A$ is the ray origin and $b$ is the ray direction. The ray parameter $t$ is a real number (`double` in the code). Plug in a different $t$ and $P(t)$ moves the point along the ray. Add in negative $t$ values and you can go anywhere on the 3D line. For positive $t$, you get only the parts in front of $A$, and this is what is often called a half-line or ray. 
+The one thing that all ray tracers have is a ray class or datatype and a computation of what color is seen along a ray. Let’s think of a ray as a function $P(t)=A+t \cdot b$. Here P is a 3D position along a line in 3D. $A$ is the ray origin and $b$ is the ray direction. The ray parameter $t$ is a real number (`double` in the code). Plug in a different $t$ and $P(t)$ moves the point along the ray. Add in negative $t$ values and you can go anywhere on the 3D line. For positive $t$, you get only the parts in front of $A$, and this is what is often called a half-line or ray. 
 
 ![Linear interpolation](./img/fig2.jpg)
 <div align="center"><b>Figure 2:</b> Linear interpolation</div><br/>
 
 The function $P(t)$ in more verbose code form will be called `ray_at(ray_t r, double t)`:
+```c
+#ifndef RAY_H
+#define RAY_H
+
+#include "../vec3/vec3.h"
+
+typedef struct {
+    point3_t origin;
+    vec3_t direction;
+} ray_t;
+
+point3_t ray_at(ray_t r, double t);
+
+#endif
+```
+<div align="center"><b>Listing 8:</b> [ray.h] The ray datatype</div><br/>
+
+And will be implemented as so:
+
+```c
+point3_t ray_at(ray_t r, double t) {
+    vec3_t tb = vec3_scalar_mul(r.direction, t);
+
+    point3_t retval = {
+        .x = r.origin.x + tb.x,
+        .y = r.origin.y + tb.y,
+        .z = r.origin.z + tb.z,
+    };
+    
+    return retval;
+}
+```
+<div align="center"><b>Listing 8a:</b> [ray.c] ray_at implementation</div><br/>
+
+### 4.2 Sending Rays Into the Scenes
+
+Now we are ready to turn the corner and make a ray tracer. At the core, the ray tracer sends rays through pixels and computes the color seen in the direction of those rays. The involved steps are (1) calculate the ray from the eye to the pixel, (2) determine which objects the ray intersects, and (3) compute a color for that intersection point. When first developing a ray tracer, I always do a simple camera for getting the code up and running. I also make a simple `ray_color(ray)` function that returns the color of the background (a simple gradient). 
+
+I’ve often gotten into trouble using square images for debugging because I transpose x and y too often, so I’ll use a non-square image. For now we'll use a 16:9 aspect ratio, since that's so common. 
+
+In addition to setting up the pixel dimensions for the rendered image, we also need to set up a virtual viewport through which to pass our scene rays. For the standard square pixel spacing, the viewport's aspect ratio should be the same as our rendered image. We'll just pick a viewport two units in height. We'll also set the distance between the projection plane and the projection point to be one unit. This is referred to as the “focal length”, not to be confused with “focus distance”, which we'll present later. 
+
+I’ll put the “eye” (or camera center if you think of a camera) at $(0,0,0)$. I will have the y-axis go up, and the x-axis to the right. In order to respect the convention of a right handed coordinate system, into the screen is the negative z-axis. I will traverse the screen from the upper left hand corner, and use two offset vectors along the screen sides to move the ray endpoint across the screen. Note that I do not make the ray direction a unit length vector because I think not doing that makes for simpler and slightly faster code.
+
+![Camera geometry](./img/fig3.jpg)
+<div align="center"><b>Figure 3:</b> Camera geometry</div><br/>
+
+Below in code, the ray `r` goes to approximately the pixel centers (I won’t worry about exactness for now because we’ll add antialiasing later): 

@@ -7,7 +7,7 @@ typedef struct {
     double z;
 } vec3_t;
 
-typedef vec3_t point3_t;
+#define point3_t vec3_t
 
 vec3_t vec3_add(vec3_t v, vec3_t u);
 vec3_t vec3_sub(vec3_t v, vec3_t u);
@@ -20,4 +20,5 @@ vec3_t vec3_unit_vec(vec3_t v);
 
 double vec3_len(vec3_t v);
 double vec3_len_squared(vec3_t v);
+
 #endif
