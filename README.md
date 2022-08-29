@@ -541,7 +541,7 @@ int main(int argc, char *argv[]) {
 ```
 <div align="center"><b>Listing 9:</b> [main.c] Rendering a blue-to-white gradient</div><br/>
 
-The `ray_color(ray)` function linearly blends white and blue depending on the height of the y coordinate after scaling the ray direction to unit length (so $ −1.0 < y < 1.0 $). Because we're looking at the y height after normalizing the vector, you'll notice a horizontal gradient to the color in addition to the vertical gradient.
+The `ray_color(ray)` function linearly blends white and blue depending on the height of the y coordinate after scaling the ray direction to unit length (so $−1.0 < y < 1.0$). Because we're looking at the y height after normalizing the vector, you'll notice a horizontal gradient to the color in addition to the vertical gradient.
 
 I then did a standard graphics trick of scaling that to $0.0 \le t \le 1.0$. When $t=1.0$ I want blue. When $t=0.0$ I want white. In between, I want a blend. This forms a “linear blend”, or “linear interpolation”, or “lerp” for short, between two things. A lerp is always of the form
 
