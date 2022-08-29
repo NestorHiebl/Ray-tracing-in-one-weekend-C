@@ -497,3 +497,59 @@ I’ll put the “eye” (or camera center if you think of a camera) at $(0,0,0)
 <div align="center"><b>Figure 3:</b> Camera geometry</div><br/>
 
 Below in code, the ray `r` goes to approximately the pixel centers (I won’t worry about exactness for now because we’ll add antialiasing later): 
+
+```c
+#define ASPECT_RATIO (16.0 / 9.0)
+#define IMG_WIDTH 1080
+#define IMG_HEIGHT ((int) (IMG_WIDTH / ASPECT_RATIO))
+
+int main(int argc, char *argv[]) {
+
+    camera_t camera;
+
+    camera.aspect_ratio = ASPECT_RATIO;
+    camera.viewport_height = 2.0;
+    camera.viewport_width = camera.aspect_ratio * camera.viewport_height;
+    camera.focal_len = 1.0;
+
+    camera.origin = (point3_t) { 0, 0, 0 };
+
+    camera.horizontal = (vec3_t) { .x = camera.viewport_width, .y = 0, .z = 0 };
+    camera.vertical = (vec3_t) { .x = 0, .y = camera.viewport_height, .z = 0 };
+    camera.lower_left_corner = calculate_lower_left_corner(camera.origin, camera.horizontal, camera.vertical, camera.focal_len);
+
+    fprintf(output_file, "P3\n%d %d\n255\n", IMG_WIDTH, IMG_HEIGHT);
+
+    for (int j = IMG_HEIGHT - 1; j >= 0; j--) {
+        printf("\rScanlines remaining: %d ", j);
+        for (int i = 0; i < IMG_WIDTH; i++) {
+            double u = ((double) i / (IMG_WIDTH - 1));
+            double v = ((double) j / (IMG_HEIGHT - 1));
+
+            ray_t r = get_ray(camera, u, v);
+
+            color_t pixel_color = ray_color(r);
+
+            write_color(output_file, pixel_color);
+        }
+    }
+
+    printf("\nDone.\n");
+    fflush(output_file);
+    fclose(output_file);
+}
+```
+<div align="center"><b>Listing 9:</b> [main.c] Rendering a blue-to-white gradient</div><br/>
+
+The `ray_color(ray)` function linearly blends white and blue depending on the height of the y coordinate after scaling the ray direction to unit length (so $−1.0<y<1.0$). Because we're looking at the y height after normalizing the vector, you'll notice a horizontal gradient to the color in addition to the vertical gradient.
+
+I then did a standard graphics trick of scaling that to $0.0 \le t \le 1.0$. When $t=1.0$ I want blue. When $t=0.0$ I want white. In between, I want a blend. This forms a “linear blend”, or “linear interpolation”, or “lerp” for short, between two things. A lerp is always of the form
+
+$$ blendedValue = (1 - t) \cdot startValue + t \cdot endValue $$
+
+with $t$ going from zero to one. In our case this produces:
+
+![Camera geometry](./img/img2.png)
+<div align="center"><b>Image 2:</b> A blue-to-white gradient depending on ray Y coordinate</div><br/>
+
+## 5. Adding a sphere
