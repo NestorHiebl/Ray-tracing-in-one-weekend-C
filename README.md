@@ -549,7 +549,105 @@ $$ blendedValue = (1 - t) \cdot startValue + t \cdot endValue $$
 
 with $t$ going from zero to one. In our case this produces:
 
-![Camera geometry](./img/img2.png)
+![A blue-to-white gradient](./img/img2.png)
 <div align="center"><b>Image 2:</b> A blue-to-white gradient depending on ray Y coordinate</div><br/>
 
 ## 5. Adding a sphere
+
+Lets's add a single object to out ray tracer. People often use spheres in ray tracers because calculating whether a ray hits a sphere is pretty straightforward.
+
+### 5.1 Ray-Sphere Intersection
+
+Recall that the equation for a sphere centered at the origin of radius $R$ is
+
+$$x^2 + y^2 + z^2 = R^2$$
+
+Put another way, if a given point $(x, y, z)$ is *on* the sphere, then $x^2 + y^2 + z^2 = R^2$. If the given point, $(x, y, z)$ is *inside* the sphere, then $x^2 + y^2 + z^2 < R^2$, and if a given point is *outside* the sphere, then $x^2 + y^2 + z^2 > R^2$.
+
+It gets uglier if the sphere center is at $(Cx, Cy, Cz)$:
+
+$$(x - Cx)^2 + (y - Cy)^2 + (z - Cz)^2 = r^2$$
+
+In graphics, you almost always want your formulas to be in terms of vectors so all the x/y/z stuff is under the hood in the `vec3` class (or in our case, the procedures operating on the `vec3_t` datatype). You might note that the vector from center ${\bf C} = (Cx, Cy, Cz)$ to point ${\bf P } = (x, y, z)$ is $({\bf P} - {\bf C})$, and therefore
+
+$$({\bf P} - {\bf C}) \cdot ({\bf P} - {\bf C}) = (x - Cx)^2 + (y - Cy)^2 + (z - Cz)^2$$ 
+
+So the equation of the sphere in vector form is:
+
+$$({\bf P} - {\bf C}) \cdot ({\bf P} - {\bf C}) = r^2$$
+
+We can read this as "Any point ${\bf P}$" that satisfies this equation is on the sphere". We want to know if our ray ${\bf P}(t) = {\bf A} + {\it t}{\bf b}$ ever hits the sphere anywhere. If it does hit the sphere, there is some $t$ for which ${\bf P}(t)$ satisfies the equation. So we are looking for any $t$ where this is true:
+
+$$({\bf P}(t) - {\bf C}) \cdot ({\bf P}(t) - {\bf C}) = r^2$$
+
+Or expanding the full form of the ray ${\bf P}(t)$:
+
+$$({\bf A} + {\it t}{\bf b} - {\bf C}) \cdot ({\bf A} + {\it t}{\bf b} - {\bf C}) = r^2$$
+
+The rules of vector algebra are all that we would want here. If we expand that equation and move all terms to the left hand side we get:
+
+$$t^2{\bf b} \cdot {\bf b} + 2t{\bf b} \cdot ({\bf A} - {\bf C}) + ({\bf A} - {\bf C}) \cdot ({\bf A} - {\bf C}) - r^2 = 0$$
+
+The vectors and $r$ in that equation are all constant and known. The unknown is $t$, and the equation is a quadratic, like you probably saw in your high school math class. You can solve for $t$ and there is a square root part that is either positive (meaning two real solutions), zero (meaning one real solution) or negative (meaning no real solutions). In graphics, the algebra almost always relates very directly to the geometry. What we have is:
+
+![Ray-sphere intersection results](./img/fig4.jpg)
+<div align="center"><b>Figure 4:</b> Ray-sphere intersection results</div><br/>
+
+That square root part is called the **discriminant** of a quadratic equation. So, how do we go about computing it? All we need to do is implement a simple formula. The generalized form of a quadratic equation looks like this:
+
+$$ax^2 + bx + c = 0$$
+
+And the discriminant can be calculated using the following:
+
+$$b^2 - 4ac$$
+
+By substituting $a$, $b$ and $c$ with the expanded terms from the eqation preceding figure 4, we get the exact items we need to compute:
+
+$$a = {\bf b} \cdot {\bf b}$$
+
+$$b = 2 {\bf b} \cdot ({\bf A} - {\bf C})$$
+
+$$c = ({\bf A} - {\bf C}) \cdot ({\bf A} - {\bf C}) - r^2$$
+
+Plugging these values into the formula for the discriminant lets us determine whether a ray intersects a given sphere.
+
+### 5.2 Creating Our First Raytraced Image
+
+If we take that math and hard-code it into our program, we can test it by coloring red any pixel that hits a small sphere we place at −1 on the z-axis: 
+
+```c
+int hit_sphere(point3_t center, double radius, ray_t r) {
+    // A vector from the sphere center to the origin, or (A - C)
+    vec3_t oc = vec3_sub(r.origin, center);
+
+    // b * b
+    double a = vec3_dot(r.direction, r.direction);
+
+    // 2b * (A - C)
+    double b = 2.0 * vec3_dot(oc, r.direction);
+
+    // (A - C) * (A - C) - (r * r)
+    double c = vec3_dot(oc, oc) - (radius * radius);
+
+    // b^2 - 4ac
+    double discriminant = (b * b) - (4 * a * c);
+
+    return (discriminant > 0);
+}
+
+color_t ray_color(ray_t r) {
+    if (hit_sphere((point3_t) {0, 0, -1}, 0.5, r)) {
+        return (color_t) {1, 0, 0};
+    }
+
+    vec3_t unit_direction = vec3_unit_vec(r.direction);
+    double t = 0.5 * (unit_direction.y + 1.0);
+    return add_color(scale_color((color_t) {1.0, 1.0, 1.0}, (1.0 - t)), scale_color((color_t) {0.5, 0.7, 1.0}, t));
+}
+```
+<div align="center"><b>Listing 10:</b> [ray.c] Rendering a red sphere</div><br/>
+
+What we get is this:
+
+![A simple red sphere](./img/img3.png)
+<div align="center"><b>Image 3:</b> A simple red sphere</div><br/>

@@ -11,6 +11,8 @@ typedef struct {
 
 point3_t ray_at(ray_t r, double t);
 
+int hit_sphere(point3_t center, double radius, ray_t r);
+
 color_t ray_color(ray_t r);
 
 #endif
