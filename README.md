@@ -2,9 +2,12 @@
 The following is a verbatim copy of Peter Shirley's **Ray Tracing in One Weekend** book (version 3.2.3, 2020-12-07), with the following changes:
  - The language has been changed from C++ to C.
  - All paragraphs expounding upon language-specific properties of the code have been re-written in order to reflect the re-written code in C.
+ - Additional sections have been added with brief explanations of the underlying math or tangential topics such as build systems.
  - Instead of writing image data to *stdout*, the programs in this repo take an additional command line argument specifying a filename. When the programs are run, image data is written to this file. *stdout* is used purely for logging.
 
- The original book in C++ can be read for free [here](https://raytracing.github.io/books/RayTracingInOneWeekend.html), or can be bought [here](https://www.amazon.de/Tracing-Weekend-Minibooks-Book-English-ebook/dp/B01B5AODD8).
+All sentences and paragraphs that I have changed or added are rendered in **bold** - I love the original book and do not want to leave the impression that I am putting words in Peter Shirley's mouth, or imply that my knowledge or the subject is more advanced than or even on the same level to his. The intent is purely to make a version of Ray Tracing in One Weekend that is slightly more accessible to people who are more comfortable with C as opposed to C++ while brushing up on my linear algebra.
+
+The original book in C++ can be read for free [here](https://raytracing.github.io/books/RayTracingInOneWeekend.html), or can be bought [here](https://www.amazon.de/Tracing-Weekend-Minibooks-Book-English-ebook/dp/B01B5AODD8).
 
 ## General remarks
 The state of the code as it is in a specific chapter in the book can be found in the directory labeled with the corresponding section number.
@@ -55,7 +58,7 @@ Whenever you start a renderer, you need a way to see an image. The most straight
 ![PPM format description](./img/fig1.jpg)
 <div align="center"><b>Figure 1:</b> PPM Example</div><br/>
 
-Let’s make some C code to output such a thing:
+**Let’s make some C code to output such a thing:**
 
 ```c
 #include <stdio.h>
@@ -101,12 +104,12 @@ There are some things to note in that code:
 
 ### 2.2. Creating an Image File
 
-Since the image data isn't written to *stdout* we cannot use output redirection to create an image file. The program in **Listing 1** is hard-coded to always create (or overwrite) a file called `out.ppm`, but we may want the option to give our images custom names. In the following section, we'll make it so that a filename can be specified via command line argument, as so:
+**Since the image data isn't written to *stdout* we cannot use output redirection to create an image file. The program in *Listing 1* is hard-coded to always create (or overwrite) a file called `out.ppm`, but we may want the option to give our images custom names. In the following section, we'll make it so that a filename can be specified via command line argument, as so:**
 
 `raytracer [FILE]`  
 `Where FILE is a filename ending with .ppm`
 
-We always want our output file to end with .ppm so it makes sense to write a simple function for input validation. Let's create a new file called `utils.h` and populate it as so:
+**We always want our output file to end with .ppm so it makes sense to write a simple function for input validation. Let's create a new file called `utils.h` and populate it as so:**
 
 ```c
 #include <stdio.h>
@@ -142,7 +145,7 @@ int validate_filename(const char *filename) {
 ```
 <div align="center"><b>Listing 1a:</b> [utils.h] Some simple utility functions</div><br/>
 
-The `validate_input` function is rudimentary but will do for now. All it does is check that the given filename is a string ending with but not consisting entirely of the characters ".ppm" and that it is not too long for the operating system. `print_usage` can be output in case of error to let the user know what kind of input is expected of them. When we insert the above functions into our code we get this:
+**The `validate_input` function is rudimentary but will do for now. All it does is check that the given filename is a string ending with but not consisting entirely of the characters ".ppm" and that it is not too long for the operating system. `print_usage` can be output in case of error to let the user know what kind of input is expected of them. When we insert the above functions into our code we get this:**
 
 ```c
 #include <stdio.h>
@@ -195,11 +198,11 @@ int main(int argc, char *argv[]) {
 ```
 <div align="center"><b>Listing 1b:</b> [main.c] Specifying the output filename</div><br/>
 
-Now that we have two separate code files (with many more to come) it makes sense to include a build system into the project. Since this is meant to be a book focusing on ray tracing, I will only give a quick and cursory account of a specific build system, **Makefile**. In case you're already familiar with it or just not interested, feel free to skip this section. If you would like to learn more about makefiles, I recommend [this website](https://makefiletutorial.com/).
+**Now that we have two separate code files (with many more to come) it makes sense to include a build system into the project. Since this is meant to be a book focusing on ray tracing, I will only give a quick and cursory account of a specific build system, *Makefile*. In case you're already familiar with it or just not interested, feel free to skip this section. If you would like to learn more about makefiles, I recommend [this website](https://makefiletutorial.com/).**
 
-Create a new file in the project's root directory called `Makefile`. Makefiles are used to specify and track dependencies between files. With one set up, we can simply run `make` from the command line and it will automatically check for changes in the source code, recompiling executables and object files as needed.
+**Create a new file in the project's root directory called `Makefile`. Makefiles are used to specify and track dependencies between files. With one set up, we can simply run `make` from the command line and it will automatically check for changes in the source code, recompiling executables and object files as needed.**
 
-Let's insert the following into our makefile:
+**Let's insert the following into our makefile:**
 
 ```Makefile
 CC=gcc # Or replace gcc with whichever compiler you're using
@@ -210,11 +213,11 @@ $(EXECUTABLE): main.c utils.h
 	$(CC) -o $(EXECUTABLE) $(CFLAGS) main.c
 ```
 
-The above expresses that our executable file (`raytracer`) depends on the source files `main.c` and `utils.h`. As a result, whenever we run `make` after changing either of these files the build system will recognize that the executable is out of date and run the chain of commands specified in the indented line under `$(EXECUTABLE): main.c utils.h`.
+**The above expresses that our executable file (`raytracer`) depends on the source files `main.c` and `utils.h`. As a result, whenever we run `make` after changing either of these files the build system will recognize that the executable is out of date and run the chain of commands specified in the indented line under `$(EXECUTABLE): main.c utils.h`.**
 
-The makefile will be refined further as the project becomes more complex, but I will not spend any more time on explaining its inner mechanics. If you're interested on seeing its state at a specific stage in the project's development, check its specific subsection directory. For a deeper read on the topic or if you want to look up a specific feature I recommend reading up [here](https://makefiletutorial.com/). 
+**The makefile will be refined further as the project becomes more complex, but I will not spend any more time on explaining its inner mechanics. If you're interested on seeing its state at a specific stage in the project's development, check its specific subsection directory. For a deeper read on the topic or if you want to look up a specific feature I recommend reading up [here](https://makefiletutorial.com/).**
 
-Now all you need to do is run the command `make`. Your shell should output something along the lines of `gcc -o raytracer -Werror -Wextra -pedantic main.c` and you should find a new file called `raytracer` in your project's directory. If this is the case, run `raytracer image.ppm` and open the resulting file in the image viewer of your choice. This is the result:
+**Now all you need to do is run the command `make`. Your shell should output something along the lines of `gcc -o raytracer -Werror -Wextra -pedantic main.c` and you should find a new file called `raytracer` in your project's directory. If this is the case, run `raytracer image.ppm` and open the resulting file in the image viewer of your choice. This is the result:**
 
 ![PPM format description](./img/img1.png)
 <div align="center"><b>Figure 1:</b> First PPM image</div><br/>
@@ -269,7 +272,7 @@ Before we continue, let's add a progress indicator to our output. This is a hand
 
 ## 3. The vec3 Data Structure
 
-Almost all graphics programs have some class(es) for storing geometric vectors and colors. In many systems these vectors are 4D (3D plus a homogeneous coordinate for geometry, and RGB plus an alpha transparency channel for colors). For our purposes, three coordinates suffices. Unlike the original book, we won't be using the same `vec3` type for everything, but we also won't be too strict about it. The original C++ implementation expresses vectors, points and colors using the same datatype. I will be drawing a hard line between vectors and colors, but not between vectors and points. It is not useful at all to have the option of, for example, computing the dot product of a color and vector whereas points and vectors both inhabit the same abstract space and are mathematically comparable. In the course of this exercise scenarios will come up where treating points as if they were vectors will be practical as it saves us having to accomodate a whole new datatype in our utility functions. As such, `point3_t` will not be a separate typedef. Instead, it will be a macro that resolves to `vec3_t`. This should serve the purpose of communicating intent to humans who read this code while making no difference at all to the compiler.
+Almost all graphics programs have some class(es) for storing geometric vectors and colors. In many systems these vectors are 4D (3D plus a homogeneous coordinate for geometry, and RGB plus an alpha transparency channel for colors). For our purposes, three coordinates suffices. **Unlike the original book, we won't be using the same `vec3` type for everything, but we also won't be too strict about it. The original C++ implementation expresses vectors, points and colors using the same datatype. I will be drawing a hard line between vectors and colors, but not between vectors and points. It is not useful at all to have the option of, for example, computing the dot product of a color and vector whereas points and vectors both inhabit the same abstract space and are mathematically comparable. In the course of this exercise scenarios will come up where treating points as if they were vectors will be practical as it saves us having to accomodate a whole new datatype in our utility functions. As such, `point3_t` will not be a separate typedef. Instead, it will be a macro that resolves to `vec3_t`. This should serve the purpose of communicating intent to humans who read this code while making no difference at all to the compiler.**
 
 ### 3.1 Variables and Methods
 
@@ -489,12 +492,14 @@ Now we are ready to turn the corner and make a ray tracer. At the core, the ray 
 
 I’ve often gotten into trouble using square images for debugging because I transpose x and y too often, so I’ll use a non-square image. For now we'll use a 16:9 aspect ratio, since that's so common. 
 
-In addition to setting up the pixel dimensions for the rendered image, we also need to set up a virtual viewport through which to pass our scene rays. For the standard square pixel spacing, the viewport's aspect ratio should be the same as our rendered image. We'll just pick a viewport two units in height. We'll also set the distance between the projection plane and the projection point to be one unit. This is referred to as the “focal length”, not to be confused with “focus distance”, which we'll present later. 
+In addition to setting up the pixel dimensions for the rendered image, we also need to set up a virtual viewport through which to pass our scene rays. For the standard square pixel spacing, the viewport's aspect ratio should be the same as our rendered image. We'll just pick a viewport two units in height. We'll also set the distance between the projection plane and the projection point to be one unit. This is referred to as the “focal length”, not to be confused with “focus distance”, which we'll present later.
 
 I’ll put the “eye” (or camera center if you think of a camera) at $(0,0,0)$. I will have the y-axis go up, and the x-axis to the right. In order to respect the convention of a right handed coordinate system, into the screen is the negative z-axis. I will traverse the screen from the upper left hand corner, and use two offset vectors along the screen sides to move the ray endpoint across the screen. Note that I do not make the ray direction a unit length vector because I think not doing that makes for simpler and slightly faster code.
 
 ![Camera geometry](./img/fig3.jpg)
 <div align="center"><b>Figure 3:</b> Camera geometry</div><br/>
+
+**!!! TODO: Introduce the camera a bit earlier !!!**
 
 Below in code, the ray `r` goes to approximately the pixel centers (I won’t worry about exactness for now because we’ll add antialiasing later): 
 
@@ -593,15 +598,15 @@ The vectors and $r$ in that equation are all constant and known. The unknown is 
 ![Ray-sphere intersection results](./img/fig4.jpg)
 <div align="center"><b>Figure 4:</b> Ray-sphere intersection results</div><br/>
 
-That square root part is called the **discriminant** of a quadratic equation. So, how do we go about computing it? All we need to do is implement a simple formula. The generalized form of a quadratic equation looks like this:
+**That square root part is called the *discriminant* of a quadratic equation. So, how do we go about computing it? All we need to do is implement a simple formula. The generalized form of a quadratic equation looks like this:**
 
 $$ax^2 + bx + c = 0$$
 
-And the discriminant can be calculated using the following:
+**And the discriminant can be calculated using the following:**
 
 $$b^2 - 4ac$$
 
-By substituting $a$, $b$ and $c$ with the expanded terms from the eqation preceding figure 4, we get the exact items we need to compute:
+**By substituting $a$, $b$ and $c$ with the expanded terms from the eqation preceding figure 4, we get the exact items we need to compute:**
 
 $$a = {\bf b} \cdot {\bf b}$$
 
@@ -609,7 +614,7 @@ $$b = 2 {\bf b} \cdot ({\bf A} - {\bf C})$$
 
 $$c = ({\bf A} - {\bf C}) \cdot ({\bf A} - {\bf C}) - r^2$$
 
-Plugging these values into the formula for the discriminant lets us determine whether a ray intersects a given sphere.
+**Plugging these values into the formula for the discriminant lets us determine whether a ray intersects a given sphere.**
 
 ### 5.2 Creating Our First Raytraced Image
 
