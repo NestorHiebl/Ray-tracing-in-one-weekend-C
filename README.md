@@ -5,7 +5,7 @@ The following is a verbatim copy of Peter Shirley's **Ray Tracing in One Weekend
  - Additional sections have been added with brief explanations of the underlying math or tangential topics such as build systems.
  - Instead of writing image data to *stdout*, the programs in this repo take an additional command line argument specifying a filename. When the programs are run, image data is written to this file. *stdout* is used purely for logging.
 
-All sentences and paragraphs that I have changed or added are rendered in **bold** - I love the original book and do not want to leave the impression that I am putting words in Peter Shirley's mouth, or imply that my knowledge or the subject is more advanced than or even on the same level to his. The intent is purely to make a version of Ray Tracing in One Weekend that is slightly more accessible to people who are more comfortable with C as opposed to C++ while brushing up on my linear algebra.
+All sentences and paragraphs that I have changed or added are rendered in **bold** - I love the original book and do not want to leave the impression that I am putting words in Peter Shirley's mouth, or imply that my knowledge or the subject is more advanced than or even on the same level as his. The intent is purely to make a version of Ray Tracing in One Weekend that is slightly more accessible to people who are more comfortable with C as opposed to C++ while brushing up on my linear algebra.
 
 The original book in C++ can be read for free [here](https://raytracing.github.io/books/RayTracingInOneWeekend.html), or can be bought [here](https://www.amazon.de/Tracing-Weekend-Minibooks-Book-English-ebook/dp/B01B5AODD8).
 
@@ -499,7 +499,66 @@ I’ll put the “eye” (or camera center if you think of a camera) at $(0,0,0)
 ![Camera geometry](./img/fig3.jpg)
 <div align="center"><b>Figure 3:</b> Camera geometry</div><br/>
 
-**!!! TODO: Introduce the camera a bit earlier !!!**
+**To make the code a little clearer than it would otherwise be, let's make a change here that's only added to the original a bit later; a camera datatype! Why are we tackling this now instead of later? The original C++ code can be a lot more compact at times due to having access to operator overloading. If we want to add two vectors, in C++ all we have to do is write `u + v` - In the C version, we have to use a subprocedure which ends up more verbose: `vec3_add(u, v)`. This also means that we do not have the option to variadically add as many vectors to each other as is necessary in any given moment - every addition is new function call. In order to keep our main procedure from balooning in length and to more clearly verbalize what each step is doing, we will be outsourcing part of it to a new source file - header file pair:**
+
+```c
+#ifndef CAMERA_H
+#define CAMERA_H
+#include "../vec3/vec3.h"
+#include "../ray/ray.h"
+
+typedef struct {
+    double aspect_ratio;
+    double viewport_height;
+    double viewport_width;
+    double focal_len;
+
+    point3_t origin;
+    vec3_t horizontal;
+    vec3_t vertical;
+    vec3_t lower_left_corner;
+} camera_t;
+
+vec3_t calculate_lower_left_corner(point3_t origin, vec3_t horizontal, vec3_t vertical, double focal_len);
+
+ray_t get_ray(camera_t camera, double horizontal_comp, double vertical_comp);
+
+#endif
+```
+<div align="center"><b>Listing 8b:</b> [camera.h] The camera datatype</div><br/>
+
+**The corresponding source file implementing the logic illustrated in Figure 3 looks like this:**
+
+```c
+#include "camera.h"
+#include "../vec3/vec3.h"
+#include "../ray/ray.h"
+
+vec3_t calculate_lower_left_corner(point3_t origin, vec3_t horizontal, vec3_t vertical, double focal_len) {
+    vec3_t retval = origin;
+
+    retval = vec3_sub(retval, vec3_scalar_div(horizontal, 2));
+    retval = vec3_sub(retval, vec3_scalar_div(vertical, 2));
+    retval = vec3_sub(retval, (vec3_t) {.x = 0, .y = 0, .z = focal_len});
+
+    return retval;
+}
+
+ray_t get_ray(camera_t camera, double horizontal_comp, double vertical_comp) {
+    ray_t retval = { .origin = camera.origin, .direction = {0} };
+
+    retval.direction = vec3_add(
+        vec3_scalar_mul(camera.horizontal, horizontal_comp), 
+        vec3_scalar_mul(camera.vertical, vertical_comp)
+    );
+
+    retval.direction = vec3_add(retval.direction, camera.lower_left_corner);
+    retval.direction = vec3_sub(retval.direction, camera.origin);
+
+    return retval;
+}
+```
+<div align="center"><b>Listing 8c:</b> [camera.c] The camera source code</div><br/>
 
 Below in code, the ray `r` goes to approximately the pixel centers (I won’t worry about exactness for now because we’ll add antialiasing later): 
 
@@ -656,3 +715,9 @@ What we get is this:
 
 ![A simple red sphere](./img/img3.png)
 <div align="center"><b>Image 3:</b> A simple red sphere</div><br/>
+
+Now this lacks all sorts of things — like shading and reflection rays and more than one object — but we are closer to halfway done than we are to our start! One thing to be aware of is that we tested whether the ray hits the sphere at all, but $t < 0$ solutions work fine. If you change your sphere center to $z = + 1$ you will get exactly the same picture because you see the things behind you. This is not a feature! We’ll fix those issues next. 
+
+## 6. Surface Normals and Multiple Objects
+
+### 6.1. Shading with Surface Normals
