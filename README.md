@@ -721,3 +721,12 @@ Now this lacks all sorts of things — like shading and reflection rays and more
 ## 6. Surface Normals and Multiple Objects
 
 ### 6.1. Shading with Surface Normals
+
+
+First, let's get ourselves a surface normal so we can shade. THis is a vector that is perpendicular to the surface at the point of intersection. There are two design decisions to make for normals. The first is whether there normals are unit length. That is convenient for shading so I will say yes, but I won't enforce that in the code. This could allow subtle bugs, so be aware this is personal preference as are most design decisions like that. For a sphere, the outward normal is in the direction of the hit point minus the center:
+
+
+![Sphere surface normal geometry](./img/fig5.jpg)
+<div align="center"><b>Figure 5:</b> Sphere surface-normal geometry</div><br/>
+
+On the earth, this implies that the vector from the earth’s center to you points straight up. Let’s throw that into the code now, and shade it. We don’t have any lights or anything yet, so let’s just visualize the normals with a color map. A common trick used for visualizing normals (because it’s easy and somewhat intuitive to assume $n$ is a unit length vector — so each component is between −1 and 1) is to map each component to the interval from 0 to 1, and then map x/y/z to r/g/b. For the normal, we need the hit point, not just whether we hit or not. We only have one sphere in the scene, and it's directly in front of the camera, so we won't worry about negative values of t yet. We'll just assume the closest hit point (smallest t). These changes in the code let us compute and visualize $n$: 
