@@ -729,4 +729,129 @@ First, let's get ourselves a surface normal so we can shade. THis is a vector th
 ![Sphere surface normal geometry](./img/fig5.jpg)
 <div align="center"><b>Figure 5:</b> Sphere surface-normal geometry</div><br/>
 
-On the earth, this implies that the vector from the earth’s center to you points straight up. Let’s throw that into the code now, and shade it. We don’t have any lights or anything yet, so let’s just visualize the normals with a color map. A common trick used for visualizing normals (because it’s easy and somewhat intuitive to assume $n$ is a unit length vector — so each component is between −1 and 1) is to map each component to the interval from 0 to 1, and then map x/y/z to r/g/b. For the normal, we need the hit point, not just whether we hit or not. We only have one sphere in the scene, and it's directly in front of the camera, so we won't worry about negative values of t yet. We'll just assume the closest hit point (smallest t). These changes in the code let us compute and visualize $n$: 
+On the earth, this implies that the vector from the earth’s center to you points straight up. Let’s throw that into the code now, and shade it. We don’t have any lights or anything yet, so let’s just visualize the normals with a color map. A common trick used for visualizing normals (because it’s easy and somewhat intuitive to assume $n$ is a unit length vector — so each component is between −1 and 1) is to map each component to the interval from 0 to 1, and then map x/y/z to r/g/b. For the normal, we need the hit point, not just whether we hit or not. We only have one sphere in the scene, and it's directly in front of the camera, so we won't worry about negative values of t yet. We'll just assume the closest hit point (smallest t). These changes in the code let us compute and visualize $n$:
+
+```c
+double hit_sphere(point3_t center, double radius, ray_t r) {
+    // A vector from the sphere center to the origin, or (A - C)
+    vec3_t oc = vec3_sub(r.origin, center);
+
+    // b * b
+    double a = vec3_dot(r.direction, r.direction);
+
+    // 2b * (A - C)
+    double b = 2.0 * vec3_dot(oc, r.direction);
+
+    // (A - C) * (A - C) - (r * r)
+    double c = vec3_dot(oc, oc) - (radius * radius);
+
+    // b^2 - 4ac
+    double discriminant = (b * b) - (4 * a * c);
+
+    if (discriminant < 0) {
+        return -1.0;
+    } else {
+        // Fully compute the quadratic formula
+        return ((-b - sqrt(discriminant)) / (2.0 * a));
+    } 
+}
+
+color_t ray_color(ray_t r) {
+    double t = hit_sphere((point3_t) {0, 0, -1}, 0.5, r);
+    if (t > 0.0) {
+        // Subtracting the sphere's center from a point on its surface yields a non-normalized surface normal
+        vec3_t N = vec3_sub(ray_at(r, t), (vec3_t) { 0.0, 0.0, -1.0});
+        
+        // Normalize it
+        N = vec3_unit_vec(N);
+        return scale_color((color_t) { .r = N.x + 1.0, .g = N.y + 1.0, .b = N.z + 1.0}, 0.5);
+    }
+
+    vec3_t unit_direction = vec3_unit_vec(r.direction);
+    t = 0.5 * (unit_direction.y + 1.0);
+    return add_color(scale_color((color_t) {1.0, 1.0, 1.0}, (1.0 - t)), scale_color((color_t) {0.5, 0.7, 1.0}, t));
+}
+```
+<div align="center"><b>Listing 11:</b> [ray.c] Rendering surface normals on a sphere</div><br/>
+
+**Note: Don't forget, the double returned by the `hit_sphere()` funtion gives us the scalar that the given ray's direction has to be multiplied by to intersect the sphere (if it intersects the sphere at all)**
+
+And that yields the picture:
+
+![](./img/img4.png)
+<div align="center"><b>Image 4:</b>A sphere colored according to its normal vectors</div><br/>
+
+### 6.2. Simplifying the Ray-Sphere Intersection code
+
+Let's revisit the ray-sphere equation:
+
+```c
+double hit_sphere(point3_t center, double radius, ray_t r) {
+    // A vector from the sphere center to the origin, or (A - C)
+    vec3_t oc = vec3_sub(r.origin, center);
+
+    // b * b
+    double a = vec3_dot(r.direction, r.direction);
+
+    // 2b * (A - C)
+    double b = 2.0 * vec3_dot(oc, r.direction);
+
+    // (A - C) * (A - C) - (r * r)
+    double c = vec3_dot(oc, oc) - (radius * radius);
+
+    // b^2 - 4ac
+    double discriminant = (b * b) - (4 * a * c);
+
+    if (discriminant < 0) {
+        return -1.0;
+    } else {
+        // Fully compute the quadratic formula
+        return ((-b - sqrt(discriminant)) / (2.0 * a));
+    } 
+}
+```
+<div align="center"><b>Listing 12:</b> [ray.c] Ray-sphere intersection code (before)</div><br/>
+
+First, recall that a vector dotted with itself is equal to the squared length of that vector. 
+
+Second, notice how the equation for b has a factor of two in it. Consider what happens to the quadratic equation if $b = 2h$:
+
+$$\frac{-b \pm \sqrt{b^2 - 4ac}}{2a} $$
+
+$$= \frac{-2h \pm \sqrt{(2h)^2 - 4ac}}{2a} $$
+
+$$= \frac{-2h \pm 2\sqrt{h^2 - ac}}{2a} $$
+
+$$= \frac{-h \pm \sqrt{h^2 - ac}}{a} $$
+
+
+Using these observations, we can now simplify the sphere-intersection code to this:
+
+```c
+double hit_sphere(point3_t center, double radius, ray_t r) {
+    // A vector from the sphere center to the origin, or (A - C)
+    vec3_t oc = vec3_sub(r.origin, center);
+
+    double a = vec3_len_squared(r.direction); 
+
+    double half_b = vec3_dot(oc, r.direction);
+
+    double c = vec3_len_squared(oc) - (radius * radius);
+ 
+    double discriminant = (half_b * half_b) - (a * c);
+
+    if (discriminant < 0) {
+        return -1.0;
+    } else {
+        // Fully compute the quadratic formula
+        return ((-half_b - sqrt(discriminant)) / a);
+    } 
+}
+```
+<div align="center"><b>Listing 13:</b> [ray.c] Ray-sphere intersection code (after)</div><br/>
+
+### 6.3 An Abstraction for Hittable Objects
+
+Now, how about several spheres? While it is tempting to have an array of spheres, a very clean solution is the make an “abstract class” for anything a ray might hit, and make both a sphere and a list of spheres just something you can hit. What that class should be called is something of a quandary — calling it an “object” would be good if not for “object oriented” programming. “Surface” is often used, with the weakness being maybe we will want volumes. “hittable” emphasizes the member function that unites them. I don’t love any of these, but I will go with “hittable”.
+
+This `hittable` abstract class will have a hit function that takes in a ray. Most ray tracers have found it convenient to add a valid interval for hits $t_{min}$ to $t_{max}$, so the hit only “counts” if $t_{min} < t < t_{max}$. For the initial rays this is positive $t$, but as we will see, it can help some details in the code to have an interval $t_{min}$ to $t_{max}$. One design question is whether to do things like compute the normal if we hit something. We might end up hitting something closer as we do our search, and we will only need the normal of the closest thing. I will go with the simple solution and compute a bundle of stuff I will store in some structure. Here’s the abstract class: 
