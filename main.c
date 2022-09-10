@@ -6,6 +6,7 @@
 #include "color/color.h"
 #include "ray/ray.h"
 #include "camera/camera.h"
+#include "sphere/sphere.h"
 
 #define ASPECT_RATIO (16.0 / 9.0)
 #define IMG_WIDTH 1080

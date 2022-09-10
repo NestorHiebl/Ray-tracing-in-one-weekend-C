@@ -14,34 +14,6 @@ point3_t ray_at(ray_t r, double t) {
     return retval;
 }
 
-/**
- * @brief Check whether a given ray intersects a sphere with given center and radius.
- * 
- * @param center The center of the sphere in question.
- * @param radius The radius of the sphere in question.
- * @param r The ray to check with.
- * @return Returns -1.0 if the ray does not intersect the given sphere. Otherwise returns the factor with
- * which the ray direction is to be multiplied in order to get the intersection point.
- */
-double hit_sphere(point3_t center, double radius, ray_t r) {
-    // A vector from the sphere center to the origin, or (A - C)
-    vec3_t oc = vec3_sub(r.origin, center);
-
-    double a = vec3_len_squared(r.direction); 
-
-    double half_b = vec3_dot(oc, r.direction);
-
-    double c = vec3_len_squared(oc) - (radius * radius);
- 
-    double discriminant = (half_b * half_b) - (a * c);
-
-    if (discriminant < 0) {
-        return -1.0;
-    } else {
-        // Fully compute the quadratic formula
-        return ((-half_b - sqrt(discriminant)) / a);
-    } 
-}
 
 color_t ray_color(ray_t r) {
     double t = hit_sphere((point3_t) {0, 0, -1}, 0.5, r);

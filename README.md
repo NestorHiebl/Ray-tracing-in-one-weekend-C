@@ -852,6 +852,97 @@ double hit_sphere(point3_t center, double radius, ray_t r) {
 
 ### 6.3 An Abstraction for Hittable Objects
 
-Now, how about several spheres? While it is tempting to have an array of spheres, a very clean solution is the make an “abstract class” for anything a ray might hit, and make both a sphere and a list of spheres just something you can hit. What that class should be called is something of a quandary — calling it an “object” would be good if not for “object oriented” programming. “Surface” is often used, with the weakness being maybe we will want volumes. “hittable” emphasizes the member function that unites them. I don’t love any of these, but I will go with “hittable”.
+Now, how about several spheres? **Creating an array of spheres would be easy, but what if we ever want to add anything other than a sphere to our scene? We should think ahead and come up with a generalized way to describe interactions between a ray and anything it may hit. Before we continue, let's settle on a name for that kind of datatype.** Calling it an "object" would be good if not for "object oriented" programming. "Surface" is often used, with the weakness being maybe we will want volumes in the future. "Hittable" emphasizes how they will be used and the function that unites them. I don't love any of these, but I will go with "hittable".
 
-This `hittable` abstract class will have a hit function that takes in a ray. Most ray tracers have found it convenient to add a valid interval for hits $t_{min}$ to $t_{max}$, so the hit only “counts” if $t_{min} < t < t_{max}$. For the initial rays this is positive $t$, but as we will see, it can help some details in the code to have an interval $t_{min}$ to $t_{max}$. One design question is whether to do things like compute the normal if we hit something. We might end up hitting something closer as we do our search, and we will only need the normal of the closest thing. I will go with the simple solution and compute a bundle of stuff I will store in some structure. Here’s the abstract class: 
+**Most object oriented languages have a multitude of features that could help us abstract away the commonality of being a hittable datatype, but none of them are available to us in C. We can't define interfaces or abstract classes and we have nothing resembling inheritance. So what can be done? The good news is that although we don't know what the internal structure of future hittable objects will be like, we do know how we want them to behave. A hittable object must have a `hit()` procedure whose inputs and output conform to a specific signature. This can be rigidly defined using one of C's most confusingly notated features, function pointers. We will define a structure that contains a function pointer as well as a pointer to a hittable that the function will operate on. Now we just need to decide what the function signature should look like.**
+
+**This `hit()` function will have to take in a ray.** Most ray tracers have found it convenient to add a valid interval for hits $t_{min}$ to $t_{max}$, so the hit only “counts” if $t_{min} < t < t_{max}$. For the initial rays this is positive $t$, but as we will see, it can help some details in the code to have an interval $t_{min}$ to $t_{max}$. One design question is whether to do things like compute the normal if we hit something. We might end up hitting something closer as we do our search, and we will only need the normal of the closest thing. We will go with the simple solution and compute a bundle of stuff **that will be stored in some structure. So the `hit()` function has to take a pointer to this "hit record" structure. What about its return value? Let's make it return an integer that tells us whether execution was successful or not, to make debugging easier. Here's the corresponding header file:**
+
+```c
+#ifndef HITTABLE
+#define HITTABLE
+
+#include "./ray/ray.h"
+
+typedef void* hittable_ptr;
+
+typedef struct {
+    point3_t p;
+    vec3_t normal;
+    double t;
+} hit_record_t;
+
+typedef struct {
+    hittable_ptr ptr;
+    size_t size;
+
+    int (*hit) (hittable_ptr, ray_t, double, double, hit_record_t*);
+} hittable_t;
+
+#endif
+```
+<div align="center"><b>Listing 14:</b> [hittable.h] The hittable header</div><br/>
+
+And here's the sphere:
+
+```c
+#include "sphere.h"
+#include <math.h>
+
+int sphere_hit(hittable_ptr ptr, ray_t r, double t_min, double t_max, hit_record_t *rec) {
+    if ((ptr == NULL) || (rec == NULL)) {
+        return -1;
+    }
+
+    sphere_t *sphere_ptr = (sphere_t*) ptr;
+
+    // A vector from the sphere center to the origin, or (A - C)
+    vec3_t oc = vec3_sub(r.origin, sphere_ptr->center);
+
+    double a = vec3_len_squared(r.direction); 
+
+    double half_b = vec3_dot(oc, r.direction);
+
+    double c = vec3_len_squared(oc) - (sphere_ptr->radius * sphere_ptr->radius);
+ 
+    double discriminant = (half_b * half_b) - (a * c);
+
+    if (discriminant < 0) {
+        return 0;
+    }
+
+    double sqrtd = sqrt(discriminant);
+
+    // Find the nearest root in the acceptable range
+    double root = (-half_b - sqrtd) / a;
+
+    if ((root < t_min) || (t_max < root)) {
+        root = (-half_b + sqrtd) / a;
+     
+        if ((root < t_min) || (t_max < root)) {
+            return 0;
+        }
+    }
+
+    rec->t = root;
+    rec->p = ray_at(r, root);
+    rec->normal = vec3_scalar_div(vec3_sub(rec->p, sphere_ptr->center), sphere_ptr->radius);
+
+    return 1;
+}
+
+hittable_t sphere_to_hittable(sphere_t *sphere) {
+    if (sphere == NULL) {
+        return (hittable_t) { .ptr = NULL, .size = 0, .hit = NULL };
+    }
+
+    return (hittable_t) {
+        .ptr = sphere,
+        .size = sizeof(sphere_t),
+        .hit = &sphere_hit
+    };
+}
+```
+<div align="center"><b>Listing 15:</b> [sphere.c] The sphere source file</div><br/>
+
+### 6.4. Front faces Versus Back Faces
