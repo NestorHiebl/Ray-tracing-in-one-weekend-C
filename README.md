@@ -854,7 +854,7 @@ double hit_sphere(point3_t center, double radius, ray_t r) {
 
 Now, how about several spheres? **Creating an array of spheres would be easy, but what if we ever want to add anything other than a sphere to our scene? We should think ahead and come up with a generalized way to describe interactions between a ray and anything it may hit. Before we continue, let's settle on a name for that kind of datatype.** Calling it an "object" would be good if not for "object oriented" programming. "Surface" is often used, with the weakness being maybe we will want volumes in the future. "Hittable" emphasizes how they will be used and the function that unites them. I don't love any of these, but I will go with "hittable".
 
-**Most object oriented languages have a multitude of features that could help us abstract away the commonality of being a hittable datatype, but none of them are available to us in C. We can't define interfaces or abstract classes and we have nothing resembling inheritance. So what can be done? The good news is that although we don't know what the internal structure of future hittable objects will be like, we do know how we want them to behave. A hittable object must have a `hit()` procedure whose inputs and output conform to a specific signature. This can be rigidly defined using one of C's most confusingly notated features, function pointers. We will define a structure that contains a function pointer as well as a pointer to a hittable that the function will operate on. Now we just need to decide what the function signature should look like.**
+**Most object oriented languages have a multitude of features that could help us abstract away the commonality of being a hittable datatype, but none of them are available to us in C. We can't define interfaces or abstract classes and we have nothing resembling inheritance. So what can be done? The good news is that although we don't know what the internal structure of future hittable objects will be like, we do know how we want them to behave. A hittable object must have a corresponding `hit()` procedure whose inputs and output conform to a specific signature. This can be rigidly defined using one of C's most confusingly notated features, function pointers. We will define a structure that contains a function pointer as well as a pointer to a hittable that the function will operate on. Now we just need to decide what the function signature should look like.**
 
 **This `hit()` function will have to take in a ray.** Most ray tracers have found it convenient to add a valid interval for hits $t_{min}$ to $t_{max}$, so the hit only “counts” if $t_{min} < t < t_{max}$. For the initial rays this is positive $t$, but as we will see, it can help some details in the code to have an interval $t_{min}$ to $t_{max}$. One design question is whether to do things like compute the normal if we hit something. We might end up hitting something closer as we do our search, and we will only need the normal of the closest thing. We will go with the simple solution and compute a bundle of stuff **that will be stored in some structure. So the `hit()` function has to take a pointer to this "hit record" structure. What about its return value? Let's make it return an integer that tells us whether execution was successful or not, to make debugging easier. Here's the corresponding header file:**
 
@@ -883,7 +883,7 @@ typedef struct {
 ```
 <div align="center"><b>Listing 14:</b> [hittable.h] The hittable header</div><br/>
 
-And here's the sphere:
+And here's the sphere. Note that every hittable datatype should have a dedicated way to convert structures of that type to `hittable_t`, since that is the common handle we will be using to manage hittables:
 
 ```c
 #include "sphere.h"
@@ -946,3 +946,40 @@ hittable_t sphere_to_hittable(sphere_t *sphere) {
 <div align="center"><b>Listing 15:</b> [sphere.c] The sphere source file</div><br/>
 
 ### 6.4. Front faces Versus Back Faces
+
+The second design decision for normals is whether they should always point out. At present, the normal found will always be in the direction of the center to the intersection point (the normal points out). If the ray intersects the sphere from the outside, the normal points against the ray. If the ray intersects the sphere from the inside, the normal (which always points out) points with the ray. Alternatively, we can have the normal always point against the ray. If the ray is outside the sphere, the normal will point outward, but if the ray is inside the sphere, the normal will point inward.
+
+
+![Surface-normal geometry](./img/fig6.jpg)
+<div align="center"><b>Figure 6:</b> Possible directions for sphere surface-normal geometry</div><br/>
+
+We need to choose one of these possibilities because we will eventually want to determine which side of the surface the ray is coming from. This is important for objects that are rendered differently on each side, like the test on a two-sided sheet of paper, or for objects that have an inside and an outside, like glass balls.
+
+If we decide to have the normals always point out, then we will need to determine which side the ray is on when we color it. We can figure this out by comparing the ray with the normal. If the ray and the normal face in the same direction, the ray is inside the object. This can be determined by taking the dot product of the two vectors, where if their dot is positive, the ray is inside the sphere.
+
+```c
+if (dot(ray_direction, outward_normal) > 0) {
+    // Ray is inside the sphere
+    ...
+} else {
+    // Ray is outside the sphere
+    ...
+}
+```
+<div align="center"><b>Listing 16:</b> Comparing the ray and the normal</div><br/>
+
+If we decide to have the normals always point against the ray, we won't be able to use the dot product to determine which side of the surface the ray is on. Instead, we would need to store that information:
+
+```c
+bool front_face;
+if (dot(ray_direction, outward_normal) > 0) {
+    // Ray is inside the sphere
+    normal = vec3_scalar_mul(outward_normal, -1);
+    front_face = false;
+} else {
+    // Ray is outside the sphere
+    normal = outward_normal;
+    front_face = true;
+}
+```
+<div align="center"><b>Listing 17:</b> Remembering the side of the surface</div><br/>

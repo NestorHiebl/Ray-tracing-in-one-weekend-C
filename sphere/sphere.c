@@ -1,15 +1,17 @@
 #include "sphere.h"
 #include <math.h>
 
-
 /**
- * @brief Check whether a given ray intersects a sphere with given center and radius.
+ * @brief Check whether a given ray intersects a sphere with given min and max distance t. 
  * 
- * @param center The center of the sphere in question.
- * @param radius The radius of the sphere in question.
+ * @param ptr A pointer to a valid sphere, cast to hittable_ptr. 
  * @param r The ray to check with.
- * @return Returns -1.0 if the ray does not intersect the given sphere. Otherwise returns the factor with
- * which the ray direction is to be multiplied in order to get the intersection point.
+ * @param t_min The minimum distance from ray origin to check for.
+ * @param t_max The maximum distance from ray origin to check for.
+ * @param rec The structure to populate with hit data.
+ * 
+ * @return Returns 0 if the ray does not intersect the given sphere, 1 if it does, -1 on
+ * error or invalid argument.
  */
 int sphere_hit(hittable_ptr ptr, ray_t r, double t_min, double t_max, hit_record_t *rec) {
     if ((ptr == NULL) || (rec == NULL)) {
