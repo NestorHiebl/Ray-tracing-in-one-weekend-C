@@ -864,7 +864,7 @@ Now, how about several spheres? **Creating an array of spheres would be easy, bu
 
 #include "./ray/ray.h"
 
-typedef void* hittable_ptr;
+typedef void* raw_hittable_data;
 
 typedef struct {
     point3_t p;
@@ -873,10 +873,10 @@ typedef struct {
 } hit_record_t;
 
 typedef struct {
-    hittable_ptr ptr;
+    raw_hittable_data ptr;
     size_t size;
 
-    int (*hit) (hittable_ptr, ray_t, double, double, hit_record_t*);
+    int (*hit) (raw_hittable_data, ray_t, double, double, hit_record_t*);
 } hittable_t;
 
 #endif
@@ -888,8 +888,8 @@ And here's the sphere. Note that every hittable datatype should have a dedicated
 ```c
 #include "sphere.h"
 #include <math.h>
-
-int sphere_hit(hittable_ptr ptr, ray_t r, double t_min, double t_max, hit_record_t *rec) {
+ 
+int sphere_hit(raw_hittable_data ptr, ray_t r, double t_min, double t_max, hit_record_t *rec) {
     if ((ptr == NULL) || (rec == NULL)) {
         return -1;
     }
