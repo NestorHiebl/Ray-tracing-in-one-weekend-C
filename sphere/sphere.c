@@ -4,7 +4,7 @@
 /**
  * @brief Check whether a given ray intersects a sphere with given min and max distance t. 
  * 
- * @param ptr A pointer to a valid sphere, cast to hittable_ptr. 
+ * @param ptr A pointer to a valid sphere, cast to raw_hittable_data. 
  * @param r The ray to check with.
  * @param t_min The minimum distance from ray origin to check for.
  * @param t_max The maximum distance from ray origin to check for.
@@ -13,7 +13,7 @@
  * @return Returns 0 if the ray does not intersect the given sphere, 1 if it does, -1 on
  * error or invalid argument.
  */
-int sphere_hit(hittable_ptr ptr, ray_t r, double t_min, double t_max, hit_record_t *rec) {
+int sphere_hit(raw_hittable_data ptr, ray_t r, double t_min, double t_max, hit_record_t *rec) {
     if ((ptr == NULL) || (rec == NULL)) {
         return -1;
     }
@@ -51,6 +51,9 @@ int sphere_hit(hittable_ptr ptr, ray_t r, double t_min, double t_max, hit_record
     rec->t = root;
     rec->p = ray_at(r, root);
     rec->normal = vec3_scalar_div(vec3_sub(rec->p, sphere_ptr->center), sphere_ptr->radius);
+
+    vec3_t outward_normal = vec3_scalar_div(vec3_sub(rec->p, sphere_ptr->center), sphere_ptr->radius);
+    hit_record_set_face_normal(&rec, r, outward_normal);
 
     return 1;
 }

@@ -12,6 +12,8 @@
 #define IMG_WIDTH 1080
 #define IMG_HEIGHT ((int) (IMG_WIDTH / ASPECT_RATIO))
 
+#define HITTABLE_AMOUNT 2
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Invalid or no arguments supplied. See usage below:\n");
@@ -47,6 +49,8 @@ int main(int argc, char *argv[]) {
     camera.lower_left_corner = calculate_lower_left_corner(camera.origin, camera.horizontal, camera.vertical, camera.focal_len);
 
     fprintf(output_file, "P3\n%d %d\n255\n", IMG_WIDTH, IMG_HEIGHT);
+
+    hittable_t hittable_array[HITTABLE_AMOUNT] = {0};
 
     for (int j = IMG_HEIGHT - 1; j >= 0; j--) {
         printf("\rScanlines remaining: %d ", j);

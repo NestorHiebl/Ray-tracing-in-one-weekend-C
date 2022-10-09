@@ -983,3 +983,47 @@ if (dot(ray_direction, outward_normal) > 0) {
 }
 ```
 <div align="center"><b>Listing 17:</b> Remembering the side of the surface</div><br/>
+
+We can set things up so that normals always point "outward" from the surface, or always point against the incident ray. This decision is determined by whether you want to determine the side of the surface at the time of geometry intersection or at the time of coloring. In this book we have more material types than we have geometry types, so we'll go for less work and put the determination at geometry time. This is simply a mater of preference, and you'll see both implementations in the literature.
+
+We add the `front_face` bool to the `hit_record` struct. **We'll also define a function to solve this calculation for us. Unlike in the original book, this function will not be included in the `hit_record_t` struct. It will be a standalone function in the `hittable.h` file instead.**
+
+
+```c
+typedef struct {
+    raw_hittable_data ptr;
+    size_t size;
+
+    int (*hit) (raw_hittable_data, ray_t, double, double, hit_record_t*);
+} hittable_t;
+
+void hittable_set_face_normal(hit_record_t *hit, ray_t r, vec3_t outward_normal) {
+    if (hit == NULL) {
+        return;
+    }
+
+    hit->front_face = vec3_dot(r.direction, outward_normal) < 0;
+    hit->normal = hit->front_face ? outward_normal : vec3_scalar_mul(outward_normal, -1);    
+}
+```
+<div align="center"><b>Listing 18:</b> [hittable.h] Adding front-face tracking to hit_record</div><br/>
+
+And then we add the surface side determination to the sphere hit precedure:
+
+```c    
+int sphere_hit(raw_hittable_data ptr, ray_t r, double t_min, double t_max, hit_record_t *rec) {
+    ...
+
+    rec->t = root;
+    rec->p = ray_at(r, root);
+    rec->normal = vec3_scalar_div(vec3_sub(rec->p, sphere_ptr->center), sphere_ptr->radius);
+
+    vec3_t outward_normal = vec3_scalar_div(vec3_sub(rec->p, sphere_ptr->center), sphere_ptr->radius);
+    hit_record_set_face_normal(&rec, r, outward_normal);
+
+    return 1;
+}
+```
+<div align="center"><b>Listing 19:</b> [sphere.c] The sphere class normal determination</div><br/>
+
+### 6.5. A List of Hittable Objects
